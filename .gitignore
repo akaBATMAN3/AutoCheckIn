@@ -1,0 +1,30 @@
+# 环境配置（敏感信息）
+.env
+
+# 开发文档（个人记录）
+DEVELOPMENT.md
+
+# Python 虚拟环境
+venv/
+env/
+*.pyc
+__pycache__/
+
+# 日志文件
+log/
+*.log
+
+# 调试截图和页面源代码
+debug_screenshots/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# ChromeDriver 缓存
+.wdm/
