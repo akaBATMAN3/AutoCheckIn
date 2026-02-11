@@ -14,6 +14,10 @@ __pycache__/
 log/
 *.log
 
+# Cookie 缓存（敏感信息，不应提交）
+cookies/
+*.pkl
+
 # 调试截图和页面源代码
 debug_screenshots/
 
