@@ -28,7 +28,17 @@ def get_chrome_driver():
     options.add_argument('--start-maximized')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--no-sandbox')
-    return uc.Chrome(options=options, version_main=144)
+
+    # 使用与 Chrome 144 版本匹配的 ChromeDriver
+    chromedriver_path = os.path.expanduser(
+        "~/.wdm/drivers/chromedriver/mac64/144.0.7559.109/chromedriver-mac-arm64/chromedriver"
+    )
+
+    return uc.Chrome(
+        options=options,
+        driver_executable_path=chromedriver_path,
+        use_subprocess=False  # 不使用子进程，避免下载
+    )
 
 
 def verify_cookie_login(driver, logwriter):
@@ -168,21 +178,21 @@ def login_with_cookie_fallback(driver, email, password, cookie_manager, logwrite
     Returns:
         bool: 登录是否成功
     """
-    # 1. 检查是否有保存的 cookies
-    if cookie_manager.has_cookies(email):
-        logwriter.write(f"发现 Cookie 缓存，尝试快速登录", "INFO")
+    # # 1. 检查是否有保存的 cookies
+    # if cookie_manager.has_cookies(email):
+    #     logwriter.write(f"发现 Cookie 缓存，尝试快速登录", "INFO")
 
-        # 2. 加载 cookies（必须先访问域名）
-        driver.get("https://w1.v2free.net")
-        cookie_manager.load_cookies(driver, email)
+    #     # 2. 加载 cookies（必须先访问域名）
+    #     driver.get("https://w1.v2free.net")
+    #     cookie_manager.load_cookies(driver, email)
 
-        # 3. 验证 cookies 有效性
-        if verify_cookie_login(driver, logwriter):
-            logwriter.write("Cookie 登录成功，跳过完整登录流程（节省 ~17s）", "INFO")
-            return True
-        else:
-            logwriter.write("Cookie 已失效，删除无效缓存", "INFO")
-            cookie_manager.delete_cookies(email)
+    #     # 3. 验证 cookies 有效性
+    #     if verify_cookie_login(driver, logwriter):
+    #         logwriter.write("Cookie 登录成功，跳过完整登录流程（节省 ~17s）", "INFO")
+    #         return True
+    #     else:
+    #         logwriter.write("Cookie 已失效，删除无效缓存", "INFO")
+    #         cookie_manager.delete_cookies(email)
 
     # 4. 回退到完整登录
     logwriter.write("执行完整登录流程", "INFO")
