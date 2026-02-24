@@ -116,30 +116,36 @@ def perform_full_login(driver, email, password, logwriter):
     driver.find_element(By.ID, "passwd").send_keys(password)
     logwriter.write("→ 密码输入完成", "INFO")
 
-    logwriter.write("→ 准备点击登录按钮", "INFO")
-    driver.find_element(By.ID, "login").click()
-    logwriter.write("→ 登录按钮已点击", "INFO")
+    # 点击登录按钮并等待 result_ok，最多重试 3 次
+    for attempt in range(1, 4):
+        logwriter.write(f"→ 点击登录按钮（第 {attempt} 次）", "INFO")
+        driver.find_element(By.ID, "login").click()
+        time.sleep(1)
 
-    # 步骤1：处理第一波浏览器弹窗（登录后）
-    try:
-        WebDriverWait(driver, TIMEOUTS["alert"]).until(EC.alert_is_present())
-        alert = driver.switch_to.alert
-        logwriter.write(f"登录后弹窗: {alert.text[:50]}...", "INFO")
-        alert.accept()
-        time.sleep(0.5)
-    except TimeoutException:
-        pass
+        # 步骤1：处理第一波浏览器弹窗（登录后）
+        try:
+            WebDriverWait(driver, TIMEOUTS["alert"]).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            logwriter.write(f"登录后弹窗: {alert.text[:50]}...", "INFO")
+            alert.accept()
+            time.sleep(1)
+        except TimeoutException:
+            pass
 
-    # 步骤2：等待并点击 result_ok 确认按钮
-    try:
-        btn = WebDriverWait(driver, TIMEOUTS["login"]).until(
-            EC.element_to_be_clickable((By.ID, "result_ok"))
-        )
-        btn.click()
-        logwriter.write("已点击 result_ok 确认登录", "INFO")
-        time.sleep(1)  # 等待页面跳转
-    except TimeoutException:
-        logwriter.write("未找到 result_ok 按钮，跳过", "INFO")
+        # 步骤2：等待并点击 result_ok 确认按钮
+        try:
+            btn = WebDriverWait(driver, TIMEOUTS["login"]).until(
+                EC.element_to_be_clickable((By.ID, "result_ok"))
+            )
+            btn.click()
+            logwriter.write(f"已点击 result_ok 确认登录（第 {attempt} 次成功）", "INFO")
+            time.sleep(1)  # 等待页面跳转
+            break  # 成功，退出循环
+        except TimeoutException:
+            if attempt < 3:
+                logwriter.write(f"未找到 result_ok 按钮，准备第 {attempt + 1} 次重试...", "INFO")
+            else:
+                logwriter.write("三次均未找到 result_ok 按钮，跳过", "INFO")
 
     # 步骤3：处理第二波浏览器弹窗（跳转后）
     try:
@@ -156,9 +162,19 @@ def perform_full_login(driver, email, password, logwriter):
         btn = WebDriverWait(driver, TIMEOUTS["login"]).until(
             EC.element_to_be_clickable((By.ID, "result_ok"))
         )
+        original_handle = driver.current_window_handle
         btn.click()
         logwriter.write("已再次点击 result_ok 确认按钮", "INFO")
         time.sleep(1)
+
+        # 检测并关闭新开的标签页，切换回原窗口
+        if len(driver.window_handles) > 1:
+            for handle in driver.window_handles:
+                if handle != original_handle:
+                    driver.switch_to.window(handle)
+                    driver.close()
+            driver.switch_to.window(original_handle)
+            logwriter.write("已关闭新开标签页，切换回原窗口", "INFO")
     except TimeoutException:
         logwriter.write("未找到第二个 result_ok 按钮，跳过", "INFO")
 
@@ -306,7 +322,6 @@ def checkin(accounts, logwriter):
                     msg = WebDriverWait(driver, TIMEOUTS["login"]).until(
                         EC.presence_of_element_located((By.ID, "result_ok"))
                     )
-                    log += msg.text + " "
                 except TimeoutException:
                     log += "签到超时. "
                 except Exception as e:
